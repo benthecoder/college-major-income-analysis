@@ -1,0 +1,149 @@
+
+## Installation
+
+```{r eval=FALSE, message=FALSE, warning=FALSE}
+install.packages("devtools")
+install.packages("skimr")
+devtools::install_github("jhudsl/collegeIncome")
+devtools::install_github("jhudsl/matahari")
+```
+
+
+## Libraries
+```{r libraries, warning=FALSE, message=FALSE}
+library(matahari)
+library(collegeIncome)
+library(skimr)
+library(tidyverse)
+library(scales)
+
+data(college)
+theme_set(theme_classic())
+```
+
+
+## About the data
+
+A codebook for the dataset is given below:
+
+* rank: Rank by median earnings
+* major_code: Major code
+* major: Major description
+* major_category: Category of major
+* total: Total number of people with major
+* sample_size: Sample size of full-time, year-round individuals used for income/earnings estimates: p25th, median, p75th
+* p25th: 25th percentile of earnings
+* median: Median earnings of full-time, year-round workers
+* p75th: 75th percentile of earnings
+* perc_men: % men with major (out of total)
+* perc_women: % women with major (out of total)
+* perc_employed: % employed (out of total)
+* perc_employed_fulltime: % employed 35 hours or more (out of employed)
+* perc_employed_parttime: % employed less than 35 hours (out of employed)
+* perc_employed_fulltime_yearround: % employed at least 50 weeks and at least 35 hours (out of employed and full-time)
+* perc_unemployed: % unemployed (out of employed)
+* perc_college_jobs: % with job requiring a college degree (out of employed)
+* perc_non_college_jobs: % with job not requiring a college degree (out of employed)
+* perc_low_wage_jobs: % in low-wage service jobs (out of total)
+
+
+```{r}
+dance_start(value = FALSE, contents = FALSE)
+```
+
+## Analysis
+
+```{r}
+dt <- college %>%
+    select(major_category, rank, median) %>%
+    mutate(major_category = factor(major_category))
+
+glimpse(dt)
+```
+
+```{r}
+pairs(dt[sapply(dt, is.numeric)])
+```
+
+```{r}
+cor(dt[sapply(dt, is.numeric)])
+```
+
+
+```{r fig.height=8, fig.width=10}
+dt %>%
+    mutate(major_category = fct_reorder(major_category, -rank)) %>%
+    ggplot(aes(x=major_category, y=rank)) +
+    geom_boxplot() +
+    coord_flip()
+```
+
+
+```{r fig.height=8, fig.width=10}
+dt %>%
+    mutate(major_category = fct_reorder(major_category, median)) %>%
+    ggplot(aes(x=major_category, y=median)) +
+    geom_boxplot() +
+    scale_y_continuous(labels = scales::dollar_format()) +
+    coord_flip()
+```
+
+## Analysis plan
+* for rank ~ major_category: use engineering and Psychology and social work as ref
+* for median ~ major cateogry: use phsyical sciences and interdiscplinary as ref
+
+### Releveling factors for linear models
+```{r}
+major_category_eng <- relevel(dt$major_category, "Engineering")
+major_category_psy <- relevel(dt$major_category, "Psychology & Social Work")
+major_category_phy <- relevel(dt$major_category, "Physical Sciences")
+major_category_inter <- relevel(dt$major_category, "Interdisciplinary")
+major_category_bu <- relevel(dt$major_category, "Business")
+```
+
+## Rank vs Major category
+
+```{r}
+summary(lm(rank ~ major_category_eng, data=dt))
+```
+
+```{r}
+summary(lm(rank ~ major_category_psy, data=dt) )
+```
+
+
+## Median vs Major category
+```{r}
+summary(lm(median ~ major_category_phy, data=dt))
+```
+
+
+```{r}
+summary(lm(median ~ major_category_inter, data=dt))
+```
+ 
+
+```{r}
+summary(lm(median ~ major_category_bu, data=dt))
+```
+
+
+```{r}
+dance_save("/Users/AngelineNeo/Desktop/Online course stuff/DS specicalization/others/major_income_data_analysis/college_major_analysis.rds")
+```
+
+```{r}
+dance_stop()
+```
+
+## Conclusion
+
+Using the highest rank and lowest rank major categories and fitting a model, we see that we get mostly significant p-values, which suggest that there is a difference between the reference and the other variables. This shows that there is an association between major categories and income (in terms of rank.)
+
+As for using the highest and lowest median income, even though the regressor is more interpretable, almost all of the p-values aren't significant. However, since the reference variable "business" was significant in both cases, it was fitted as a reference variable, and most of the p-values are significant. This could be happening due to an outlier as shown in the pairs plot previously. 
+
+Based on the results from the regression, it can be concluded that major categories don't have much influence on income, this could be happening due to the lack of other regressors that could be better at influencing income. 
+
+
+
+
